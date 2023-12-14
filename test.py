@@ -52,7 +52,8 @@ class NewModel(nn.Module):
         #                                         discard_ratio=0.95)
 
     def forward(self, x):
-        input_student = transforms.functional.resize(x, (50,50), antialias=True)
+        input_student = transforms.functional.resize(x, (70,70), antialias=True)
+        input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
         attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
                             discard_ratio=0.95)
         target = torch.tensor(attention_rollout(x))
@@ -108,12 +109,27 @@ if __name__ == '__main__':
         model = model_teacher.cuda()
 
 
-    model_student = resnet.ResNet(input_shape = [1,3,50,50], depth=26, base_channels=6) ## ~ 160k parameters
-    # summary(model_student, (3, 50, 50))
+    # model_student = resnet.ResNet(input_shape = [1,3,224,224], depth=26, base_channels=6) ## ~ 160k parameters
+    model_student = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
+    num_ftrs = model_student.fc.in_features
+    model_student.fc = nn.Linear(num_ftrs, 300)
+
+    additional_layers = nn.Sequential(
+        nn.ReLU(),
+        nn.Linear(300, 196)
+    )
+
+    model_student = nn.Sequential(
+        model_student,
+        additional_layers
+    )
+
+    summary(model_student, (3, 50, 50))
 
     # architecture for training
 
     model = NewModel(model_teacher, model_student)
+    # summary(model, (3, 224, 224))
 
     transform= transforms.Compose([
         transforms.Resize((224, 224)),
@@ -126,7 +142,7 @@ if __name__ == '__main__':
 
     train_dataloader = DataLoader(training_data, batch_size=1, shuffle=True)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model_student.parameters(), lr=0.001)
     criterion = torch.nn.MSELoss()
 
     for epoch in range(10):
@@ -135,19 +151,17 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             output, target = model(image)
             output = output.reshape(14,14)
-            loss = criterion(target, output)
+            loss = torch.dist(target, output)
             loss.backward()
             optimizer.step()
-            if i % 50 == 0:
+            if i % 1000 == 0:
+                print(f"STEP: {i}, loss: {loss.item()}")
                 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
                 axes[0].imshow(image[0].permute(1, 2, 0).detach())
                 axes[1].imshow(target)
                 axes[2].imshow(output.detach())
                 plt.show()
                 plt.close()
-
-            if i % 2500 == 0:
-                print(f"STEP: {i+1}, loss: {loss.item()}")
 
 
 
