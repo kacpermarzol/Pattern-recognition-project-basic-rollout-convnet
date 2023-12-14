@@ -52,12 +52,12 @@ class NewModel(nn.Module):
         #                                         discard_ratio=0.95)
 
     def forward(self, x):
-        input_student = transforms.functional.resize(x, (70,70), antialias=True)
-        input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
+        # input_student = transforms.functional.resize(x, (70,70), antialias=True)
+        # input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
         attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
                             discard_ratio=0.95)
         target = torch.tensor(attention_rollout(x))
-        output = self.student(input_student)
+        output = self.student(x)
 
         return output, target
 
@@ -116,7 +116,8 @@ if __name__ == '__main__':
 
     additional_layers = nn.Sequential(
         nn.ReLU(),
-        nn.Linear(300, 196)
+        nn.Linear(300, 196),
+        nn.Sigmoid()
     )
 
     model_student = nn.Sequential(
