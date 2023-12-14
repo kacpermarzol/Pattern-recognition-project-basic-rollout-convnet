@@ -1,3 +1,5 @@
+# python test.py --head_fusion "mean" --discard_ratio 0.95
+
 import argparse
 import sys
 import torch
@@ -5,6 +7,10 @@ from PIL import Image
 from torchvision import transforms
 import numpy as np
 import cv2
+import timm
+
+import matplotlib.pyplot as plt
+
 
 from vit_rollout import VITAttentionRollout
 from vit_grad_rollout import VITAttentionGradRollout
@@ -41,9 +47,18 @@ def show_mask_on_image(img, mask):
 
 if __name__ == '__main__':
     args = get_args()
-    model = torch.hub.load('facebookresearch/deit:main', 
-        'deit_tiny_patch16_224', pretrained=True)
+    # model = torch.hub.load('facebookresearch/deit:main',
+    #     'deit_tiny_patch16_224', pretrained=True)
+
+    model = timm.create_model('deit3_large_patch16_224.fb_in1k', pretrained=True)
+    for block in model.blocks:
+        block.attn.fused_attn = False
+
+
     model.eval()
+
+    # model = timm.create_model('deit3_large_patch16_224.fb_in1k', pretrained=True)
+    # model = timm.create_model('deit3_large_patch16_224.fb_in1k', pretrained=True)
 
     if args.use_cuda:
         model = model.cuda()
@@ -54,8 +69,19 @@ if __name__ == '__main__':
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
     img = Image.open(args.image_path)
+    img2 = Image.open('./examples/dogbird.png')
+
     img = img.resize((224, 224))
-    input_tensor = transform(img).unsqueeze(0)
+    img2 = img2.resize((224, 224))
+
+    # print("GGGGGG", np.shape(img))
+    img = transform(img)
+    img2 = transform(img2)
+
+    input_tensor = torch.stack((img, img2))
+    print(np.shape(input_tensor))
+
+
     if args.use_cuda:
         input_tensor = input_tensor.cuda()
 
@@ -64,6 +90,7 @@ if __name__ == '__main__':
         attention_rollout = VITAttentionRollout(model, head_fusion=args.head_fusion, 
             discard_ratio=args.discard_ratio)
         mask = attention_rollout(input_tensor)
+        print("MASK", np.shape(mask))
         name = "attention_rollout_{:.3f}_{}.png".format(args.discard_ratio, args.head_fusion)
     else:
         print("Doing Gradient Attention Rollout")
