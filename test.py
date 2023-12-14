@@ -9,7 +9,7 @@ import cv2
 import timm
 import os
 import torch.nn as nn
-from tqdm import trange
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset
@@ -91,6 +91,7 @@ def show_mask_on_image(img, mask):
     return np.uint8(255 * cam)
 
 if __name__ == '__main__':
+    torch.set_flush_denormal(True)
     args = get_args()
 
     #This is the teacher model:
@@ -148,20 +149,21 @@ if __name__ == '__main__':
 
     for epoch in range(10):
         print("EPOCH: ", epoch+1)
-        for i, image in enumerate(train_dataloader):
+        for i, image in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
             optimizer.zero_grad()
             output, target = model(image)
             output = output.reshape(14,14)
             loss = torch.dist(target, output)
             loss.backward()
             optimizer.step()
-            if i % 1000 == 0:
+            if (i+1) % 1000 == 0:
                 print(f"STEP: {i}, loss: {loss.item()}")
                 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
                 axes[0].imshow(image[0].permute(1, 2, 0).detach())
                 axes[1].imshow(target)
                 axes[2].imshow(output.detach())
                 plt.show()
+                del fig,axes
                 plt.close()
 
 
