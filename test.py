@@ -153,7 +153,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             output, target = model(image)
             output = output.reshape(14,14)
-            loss = torch.dist(target, output)
+            loss = torch.criterion(target, output)
             loss.backward()
             optimizer.step()
             if (i+1) % 1000 == 0:
