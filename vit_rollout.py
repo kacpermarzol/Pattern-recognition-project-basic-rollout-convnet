@@ -4,9 +4,9 @@ import numpy
 import sys
 from torchvision import transforms
 import numpy as np
-import cv2
+# import cv2
 
-def rollout(attentions, discard_ratio, head_fusion):
+def rollout(attentions, discard_ratio, head_fusion,device):
     result = torch.eye(attentions[0].size(-1))
     with torch.no_grad():
         for attention in attentions:
@@ -19,6 +19,7 @@ def rollout(attentions, discard_ratio, head_fusion):
             else:
                 raise "Attention head fusion type Not supported"
 
+            attention_heads_fused = attention_heads_fused.to(device)
             # Drop the lowest attentions, but
             # don't drop the class token
             flat = attention_heads_fused.view(attention_heads_fused.size(0), -1)
@@ -27,7 +28,9 @@ def rollout(attentions, discard_ratio, head_fusion):
             flat[0, indices] = 0
 
             I = torch.eye(attention_heads_fused.size(-1))
+
             a = (attention_heads_fused + 1.0*I)/2
+
             a = a / a.sum(dim=-1)
 
             result = torch.matmul(a, result)
@@ -37,8 +40,8 @@ def rollout(attentions, discard_ratio, head_fusion):
     mask = result[0, 0 , 1 :]
     # In case of 224x224 image, this brings us from 196 to 14
     width = int(mask.size(-1)**0.5)
-    mask = mask.reshape(width, width).numpy()
-    mask = mask / np.max(mask)
+    mask = mask.reshape(width, width)
+    mask = mask / torch.max(mask)
     return mask    
 
 class VITAttentionRollout:
@@ -61,4 +64,4 @@ class VITAttentionRollout:
         with torch.no_grad():
             output = self.model(input_tensor)
 
-        return rollout(self.attentions, self.discard_ratio, self.head_fusion)
+        return rollout(self.attentions, self.discard_ratio, self.head_fusion, input_tensor.device)
