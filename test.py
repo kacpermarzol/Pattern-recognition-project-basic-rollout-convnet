@@ -49,7 +49,7 @@ class NewModel(nn.Module):
         super(NewModel, self).__init__()
         self.student = student
         self.teacher = teacher
-        self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
+        self.attention_rollout = VITAttentionRollout(teacher, head_fusion="max",
                                                 discard_ratio=0.95)
 
     def forward(self, x):
@@ -161,12 +161,12 @@ if __name__ == '__main__':
             loss = criterion(target, output)
             loss.backward()
             optimizer.step()
-            if (i+1) % 5000 == 0:
+            if (i+1) % 10000 == 0:
                 print(f"STEP: {i}, loss: {loss.item()}")
                 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-                axes[0].imshow(image[0].permute(1, 2, 0).detach())
-                axes[1].imshow(target)
-                axes[2].imshow(output.detach())
+                axes[0].imshow(image[0].permute(1, 2, 0).cpu().detach())
+                axes[1].imshow(target.cpu())
+                axes[2].imshow(output.cpu().detach())
                 plt.savefig(f"train{epoch}_{i}.png")
                 plt.close(fig)
         torch.save(model_student.state_dict(), 'model_state.pth')
