@@ -48,14 +48,14 @@ class NewModel(nn.Module):
         super(NewModel, self).__init__()
         self.student = student
         self.teacher = teacher
-        # self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
-        #                                         discard_ratio=0.95)
+        self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
+                                                discard_ratio=0.95)
 
     def forward(self, x):
         input_student = transforms.functional.resize(x, (50,50), antialias=True)
-        attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
-                            discard_ratio=0.95)
-        target = torch.tensor(attention_rollout(x))
+        # attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
+        #                     discard_ratio=0.95)
+        target = torch.tensor(self.attention_rollout(x))
         output = self.student(input_student)
 
         return output, target
