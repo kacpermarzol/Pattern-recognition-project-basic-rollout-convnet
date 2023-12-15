@@ -49,21 +49,20 @@ class NewModel(nn.Module):
         super(NewModel, self).__init__()
         self.student = student
         self.teacher = teacher
-        # self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
-        #                                         discard_ratio=0.95)
+        self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
+                                                discard_ratio=0.95)
 
     def forward(self, x):
         # input_student = transforms.functional.resize(x, (70,70), antialias=True)
         # input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
-        attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
-                            discard_ratio=0.95)
-        target = torch.tensor(attention_rollout(x))
+        # attention_rollout = VITAttentionRollout(self.teacher, head_fusion="max",
+        #                     discard_ratio=0.95)
+        target = self.attention_rollout(x)
 
-        del attention_rollout
         output = self.student(x)
 
+        # return output, target
         return output, target
-
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--use_cuda', action='store_false', default=False,
@@ -146,7 +145,7 @@ if __name__ == '__main__':
     # training_data = ImageNet(data_folder, transform)
     data_folder = '/shared/sets/datasets/vision/ImageNet'
     imagenet_data = torchvision.datasets.ImageNet(data_folder, split='val', transform=transform)
-    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device),)
+    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
 
     optimizer = torch.optim.Adam(model_student.parameters(), lr=0.001)
     criterion = torch.nn.MSELoss().to(device)
