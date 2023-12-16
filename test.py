@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     for epoch in range(10):
         print("EPOCH: ", epoch+1)
-        for i, image in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
+        for i, (image, _ ) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
             image = image.to(device)
             optimizer.zero_grad()
             output, target = model(image)
