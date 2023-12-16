@@ -34,9 +34,11 @@ if __name__ == '__main__':
     # model_student = resnet.ResNet(input_shape = [1,3,224,224], depth=26, base_channels=6) ## ~ 160k parameters
     model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
     num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 300)
+    model.fc = nn.Linear(num_ftrs, 400)
 
     additional_layers = nn.Sequential(
+        nn.ReLU(),
+        nn.Linear(400, 300),
         nn.ReLU(),
         nn.Linear(300, 196),
         nn.Sigmoid()
@@ -81,6 +83,7 @@ if __name__ == '__main__':
         img2 = img2.unsqueeze(0)
 
         output = model(img)
+        print(output)
         output = output.reshape(14,14)
         output2 = model(img2)
         output2 = output2.reshape(14, 14)
