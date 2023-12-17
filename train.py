@@ -86,13 +86,13 @@ if __name__ == '__main__':
     #This is the studnet model:
     model_student = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True) # 11 million parameters
     num_ftrs = model_student.fc.in_features
-    model_student.fc = nn.Linear(num_ftrs, 400)
+    model_student.fc = nn.Linear(num_ftrs, num_ftrs)
 
     additional_layers = nn.Sequential(
         nn.ReLU(),
-        nn.Linear(400, 300),
+        nn.Linear(num_ftrs, 400),
         nn.ReLU(),
-        nn.Linear(300, 196),
+        nn.Linear(400, 196),
         nn.Sigmoid()
     )
 
@@ -110,18 +110,21 @@ if __name__ == '__main__':
     transform = transforms.Compose([
         transforms.Resize((224,224)),
         # transforms.RandomHorizontalFlip(),
-        # transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
+    # on your device
     # data_folder = './data/ILSVRC2012_img_val'
     # imagenet_data = ImageNet(data_folder, transform)
+
+    #on gmum
     data_folder = '/shared/sets/datasets/vision/ImageNet'
     imagenet_data = torchvision.datasets.ImageNet(data_folder, split='val', transform=transform)
     train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
 
-    optimizer = torch.optim.Adam(model_student.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model_student.parameters(), lr=0.0001)
     criterion = torch.nn.MSELoss().to(device)
 
 
