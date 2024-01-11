@@ -74,7 +74,7 @@ if __name__ == '__main__':
             optimizer.step()
             if (i+1) % 500 == 0:
                 losses.append(loss.item())
-                steps.append(epoch * 50000 :+ i+1)
+                steps.append(epoch * 50000 + i+1)
             if (i+1) % 10000 == 0:
                 print(f"STEP: {i+1}, loss: {loss.item()}")
                 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
