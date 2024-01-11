@@ -107,7 +107,7 @@ class ResNet(nn.Module):
         self.fc1= nn.Linear(self.feature_size, 500)
         self.fc2= nn.Linear(500, 196)
 
-        # initialize weights
+        # initialize evaluation
         self.apply(initialize_weights)
 
     def _make_stage(self, in_channels, out_channels, n_blocks, block, stride):

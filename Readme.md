@@ -1,4 +1,4 @@
-# Explainability for Vision Transformers (in PyTorch)
+-# Explainability for Vision Transformers (in PyTorch)
 
 This repository implements methods for explainability in Vision Transformers.
 

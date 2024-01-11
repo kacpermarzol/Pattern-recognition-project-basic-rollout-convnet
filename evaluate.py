@@ -18,9 +18,11 @@ from torchvision import datasets
 import matplotlib.pyplot as plt
 
 from vit_rollout import VITAttentionRollout
-from vit_grad_rollout import VITAttentionGradRollout
 from torch.utils.data import DataLoader
 import resnet
+import imagenet
+from utils import *
+import newmodel
 
 
 if __name__ == '__main__':
@@ -31,28 +33,19 @@ if __name__ == '__main__':
         device = torch.device('cpu')
     print(device)
 
-    # model_student = resnet.ResNet(input_shape = [1,3,224,224], depth=26, base_channels=6) ## ~ 160k parameters
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 400)
+    model_teacher = create_teacher()
+    model_teacher.to(device)
 
-    additional_layers = nn.Sequential(
-        nn.ReLU(),
-        nn.Linear(400, 300),
-        nn.ReLU(),
-        nn.Linear(300, 196),
-        nn.Sigmoid()
-    )
-
-    model = nn.Sequential(
-        model,
-        additional_layers
-    )
+    model_student = create_student()
+    model_student = model_student.to(device)
 
     weights_path = './evaluation/model_state.pth'
     # checkpoint = (torch.load(weights_path) if device != 'cpu' else torch.load(weights_path, map_location=torch.device('cpu')))
     checkpoint = torch.load(weights_path, map_location=device)
-    model.load_state_dict(checkpoint)
+    model_student.load_state_dict(checkpoint)
+    model = model_student.to(device)
+
+    model = newmodel.NewModel(model_teacher, model_student)
     model = model.to(device)
 
     transform = transforms.Compose([
@@ -70,30 +63,49 @@ if __name__ == '__main__':
     img = img.to(device)
     img2 = img2.to(device)
 
-    # plt.imshow(img.permute(1,2,0))
-    # plt.show()
-    #
+
+    data_folder = './data/test'
+    imagenet_data = imagenet.ImageNet(data_folder, transform)
 
     # data_folder = '/shared/sets/datasets/vision/ImageNet'
     # imagenet_data = torchvision.datasets.ImageNet(data_folder, split='val', transform=transform)
-    # train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
 
+    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=False, generator=torch.Generator(device=device))
+
+
+    topil = transforms.ToPILImage()
     with torch.no_grad():
         img = img.unsqueeze(0)
         img2 = img2.unsqueeze(0)
 
-        output = model(img)
-        print(output)
+        output, target = model(img)
         output = output.reshape(14,14)
-        output2 = model(img2)
+        output = topil(output)
+        target = topil(target)
+        output2, target2 = model(img2)
         output2 = output2.reshape(14, 14)
 
-        fig, axes = plt.subplots(1, 4, figsize=(10, 5))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-        axes[0].imshow(img[0].permute(1, 2, 0).cpu().detach())
+        # axes[0][0].imshow(img[0].permute(1, 2, 0).cpu().detach())
+        axes[0].imshow(target)
         axes[1].imshow(output)
-        axes[2].imshow(img2[0].permute(1, 2, 0).cpu().detach())
-        axes[3].imshow(output2)
-
+        # axes[1][0].imshow(img2[0].permute(1, 2, 0).cpu().detach())
+        # axes[1][1].imshow(target2)
+        # axes[1][2].imshow(output2)
         plt.show()
+        plt.close()
+
+        for i, image in tqdm(enumerate(train_dataloader), total=10):
+            image = image.to(device)
+            output, target = model(image)
+            output = output.reshape(14, 14)
+
+            fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+            axes[0].imshow(image[0].permute(1, 2, 0).cpu().detach())
+            axes[1].imshow(target.cpu())
+            axes[2].imshow(output.cpu().detach())
+            plt.show()
+            plt.close(fig)
+
 
