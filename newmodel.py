@@ -10,8 +10,8 @@ class NewModel(nn.Module):
         self.attention_rollout = VITAttentionRollout(teacher, head_fusion="mean",
                                                 discard_ratio=0.95)
     def forward(self, x):
-        input_student = transforms.functional.resize(x, (70,70), antialias=True)
-        input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
+        input_student = transforms.functional.resize(x, (90,90), antialias=True)
+        # input_student = transforms.functional.resize(input_student, (224,224), antialias=True)
 
         target = self.attention_rollout(x)
         output = self.student(input_student)
