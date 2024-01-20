@@ -79,7 +79,7 @@ if __name__ == '__main__':
     img2 = transform(img2)
 
     input_tensor = torch.stack((img, img2))
-    print(np.shape(input_tensor))
+    # print(np.shape(input_tensor))
 
 
     if args.use_cuda:
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         attention_rollout = VITAttentionRollout(model, head_fusion=args.head_fusion, 
             discard_ratio=args.discard_ratio)
         mask = attention_rollout(input_tensor)
-        print("MASK", np.shape(mask))
+        # print("MASK", np.shape(mask))
         name = "attention_rollout_{:.3f}_{}.png".format(args.discard_ratio, args.head_fusion)
     else:
         print("Doing Gradient Attention Rollout")

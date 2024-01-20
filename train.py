@@ -41,7 +41,7 @@ if __name__ == '__main__':
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+        transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
@@ -51,15 +51,20 @@ if __name__ == '__main__':
     # data_folder = './data/ILSVRC2012_img_val'
     # imagenet_data = imagenet.ImageNet(data_folder, transform)
 
-    # on server
+    # # on server
     data_folder = '/shared/sets/datasets/vision/ImageNet'
-    imagenet_data = datasets.ImageNet(data_folder, split='train', transform=transform)
-    num_samples_to_use = int(len(imagenet_data) * 0.1) ## 10%
-    subset_data = Subset(imagenet_data, range(num_samples_to_use))
-    train_dataloader = DataLoader(subset_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
 
-    optimizer = torch.optim.Adam(model_student.parameters(), lr=0.001)
-    criterion = torch.nn.MSELoss().to(device)
+    imagenet_data = datasets.ImageNet(data_folder, split='train', transform=transform)
+    indices = torch.randperm(len(imagenet_data))
+    num_samples_to_use = int(len(imagenet_data) * 0.1) ## 10%
+    imagenet_data = Subset(imagenet_data, indices[:num_samples_to_use])
+
+    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
+
+    LR = 0.001
+    optimizer = torch.optim.Adam(model_student.parameters(), lr=LR)
+    print("LR : " , LR)
+    criterion = torch.nn.L1Loss().to(device)
 
     losses= []
     steps = []
@@ -82,6 +87,7 @@ if __name__ == '__main__':
     for epoch in range(10):
         print("EPOCH: ", epoch+1)
         for i, (image, _) in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
+        # for i, image in tqdm(enumerate(train_dataloader), total=len(train_dataloader)):
             image = image.to(device)
             optimizer.zero_grad()
             output, target = model(image)
@@ -92,37 +98,47 @@ if __name__ == '__main__':
             if (i+1) % 500 == 0:
                 losses.append(loss.item())
                 steps.append(epoch * len(train_dataloader) + i+1)
-            if (i+1) % 30000 == 0:
+            if (i+1) % 30000 == 0 or ((i+1) % 5000 ==0 and epoch == 0 ):
                 print(f"STEP: {i+1}, loss: {loss.item()}")
                 fig, axes = plt.subplots(1, 3, figsize=(10, 5))
                 axes[0].imshow(image[0].permute(1, 2, 0).cpu().detach())
                 axes[1].imshow(target.cpu())
                 axes[2].imshow(output.cpu().detach())
-                plt.savefig(f"train{epoch}_{i+1}.png")
+                plt.savefig(f"deitbase_max/train{epoch}_{i+1}.png")
                 plt.close(fig)
 
-            if i == 200 or i == 1000:
-                fig, axes = plt.subplots(1, 3, figsize=(10, 5))
-                axes[0].imshow(image[0].permute(1, 2, 0).cpu().detach())
-                axes[1].imshow(target.cpu())
-                axes[2].imshow(output.cpu().detach())
-                plt.savefig(f"train{epoch}_{i + 1}.png")
-                plt.close(fig)
+            # if i == 10 or i == 40:
+            #     fig, axes = plt.subplots(1, 3, figsize=(10, 5))
+            #     axes[0].imshow(image[0].permute(1, 2, 0).cpu().detach())
+            #     axes[1].imshow(target.cpu())
+            #     axes[2].imshow(output.cpu().detach())
+            #     plt.savefig(f"train{epoch}_{i + 1}.png")
+            #     plt.close(fig)
 
         plt.plot(steps, losses)
         plt.title(f'Loss over time (after {epoch+1} epoch)')
         plt.xlabel('Step')
         plt.ylabel('Loss')
-        plt.savefig(f'Loss{epoch+1}.png')
+        plt.savefig(f'deitbase_max/Loss{epoch+1}.png')
         plt.close()
-        torch.save(model_student.state_dict(), 'model_state.pth')
+        torch.save(model_student.state_dict(), 'deitbase_max/model_state.pth')
+
+
+        if epoch == 5:
+            plt.plot(steps, losses)
+            plt.title(f'Loss over time (after {epoch + 1} epoch)')
+            plt.xlabel('Step')
+            plt.ylabel('Loss')
+            plt.savefig(f'deitbase_max/Loss{epoch + 1}.png')
+            plt.close()
+            torch.save(model_student.state_dict(), 'deitbase_max/model_state_after5epoch.pth')
 
 
     plt.plot(steps, losses)
-    plt.title('Loss over time')
+    plt.title('deitbase_max/Loss over time')
     plt.xlabel('Step')
     plt.ylabel('Loss')
-    plt.savefig("Loss.png")
+    plt.savefig("deitbase_max/Loss.png")
     plt.close()
 
 

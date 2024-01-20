@@ -134,7 +134,6 @@ class ResNet(nn.Module):
     def forward(self, x):
         x = self._forward_conv(x)
         x = x.view(x.size(0), -1)
-        #RELU??
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)

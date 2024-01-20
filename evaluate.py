@@ -32,14 +32,14 @@ if __name__ == '__main__':
     else:
         device = torch.device('cpu')
     print(device)
-
+    print("XDd")
     model_teacher = create_teacher()
     model_teacher.to(device)
 
     model_student = create_student()
     model_student = model_student.to(device)
 
-    weights_path = './evaluation/model_state.pth'
+    weights_path = './evaluation/model_state2.pth'
     # checkpoint = (torch.load(weights_path) if device != 'cpu' else torch.load(weights_path, map_location=torch.device('cpu')))
     checkpoint = torch.load(weights_path, map_location=device)
     model_student.load_state_dict(checkpoint)
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     # data_folder = '/shared/sets/datasets/vision/ImageNet'
     # imagenet_data = torchvision.datasets.ImageNet(data_folder, split='val', transform=transform)
 
-    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=False, generator=torch.Generator(device=device))
+    train_dataloader = DataLoader(imagenet_data, batch_size=1, shuffle=True, generator=torch.Generator(device=device))
 
 
     topil = transforms.ToPILImage()

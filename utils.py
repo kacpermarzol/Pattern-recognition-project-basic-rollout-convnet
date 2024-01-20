@@ -29,27 +29,51 @@ def interpolate_pos_embed(model, checkpoint_model):
             checkpoint_model['pos_embed'] = new_pos_embed
 
 def create_teacher():
-    model_teacher = model_vit.__dict__['vit_base_patch16'](
-        num_classes=1000,
-        drop_path_rate=0,
-        global_pool=True,
-    )
+    # model_teacher = model_vit.__dict__['vit_base_patch16'](
+    #     num_classes=1000,
+    #     drop_path_rate=0,
+    #     global_pool=True,
+    # )
+    #
+    # checkpoint = torch.load('mae_finetuned_vit_base.pth', map_location='cpu')
+    # msg = model_teacher.load_state_dict(checkpoint['model'], strict = False)
+    # print(msg)
+    # model_teacher.eval()
 
-    checkpoint = torch.load('mae_finetuned_vit_base.pth', map_location='cpu')
-    msg = model_teacher.load_state_dict(checkpoint['model'], strict = False)
-    print(msg)
-    model_teacher.eval()
+
+    model_teacher = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_patch16_224', pretrained=True)
+    # model_teacher = timm.create_model('deit3_base_patch16_224.fb_in1k', pretrained=True) # 300 million parameters
+
+    summary(model_teacher, (3, 224,224))
 
     for param in model_teacher.parameters():
         param.requires_grad = False
 
     for block in model_teacher.blocks:
         block.attn.fused_attn = False
+
     return model_teacher
 
 
 def create_student():
     model_student = resnet.ResNet(input_shape=[1, 3, 90, 90], depth=26, base_channels=6)  ## ~ 160k parameters
     # summary(model_student, (3, 90, 90))
+
+    # model_student = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)  # 11 million parameters
+    # num_ftrs = model_student.fc.in_features
+    # model_student.fc = nn.Linear(num_ftrs, num_ftrs)
+    #
+    # additional_layers = nn.Sequential(
+    #     nn.ReLU(),
+    #     nn.Linear(num_ftrs, 400),
+    #     nn.ReLU(),
+    #     nn.Linear(400, 196),
+    #     nn.Sigmoid()
+    # )
+    #
+    # model_student = nn.Sequential(
+    #     model_student,
+    #     additional_layers
+    # )
 
     return model_student
